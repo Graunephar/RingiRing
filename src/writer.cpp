@@ -37,51 +37,44 @@ void setup() {
   Serial.begin(9600);        // Initialize serial communications with the PC
   SPI.begin();               // Init SPI bus
   mfrc522.PCD_Init();        // Init MFRC522 card
-  Serial.println(F("Write personal data on a MIFARE PICC "));
+
+
+  Serial.println("Started");
 }
 
 
-string convertToString(char* a, int size) 
+String convertByteToString(char* a, int size) 
 { 
     int i; 
-    string s = ""; 
+    String res = ""; 
     for (i = 0; i < size; i++) { 
-        s = s + a[i]; 
+        res = res + a[i]; 
     } 
-    return s; 
+    return res; 
 } 
 
 
-void readData(byte block) {
+String readData(byte block) {
     
     MFRC522::StatusCode status;
     byte data[18];
     byte len = 18;
 
-    //------------------------------------------- GET FIRST NAME
     status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, 4, &key, &(mfrc522.uid)); //line 834 of MFRC522.cpp file
     if (status != MFRC522::STATUS_OK) {
         Serial.print(F("Authentication failed: "));
         Serial.println(mfrc522.GetStatusCodeName(status));
-        return;
+        return "";
     }
 
     status = mfrc522.MIFARE_Read(block, data, &len);
     if (status != MFRC522::STATUS_OK) {
         Serial.print(F("Reading failed: "));
         Serial.println(mfrc522.GetStatusCodeName(status));
-        return;
+        return "";
     }
 
-    //PRINT FIRST NAME
-    for (uint8_t i = 0; i < 16; i++)
-    {
-        if (data[i] != 32)
-        {
-        Serial.write(data[i]);
-        }
-    }
-    Serial.print(" ");
+    return convertByteToString((char * ) data, len-2);
 } 
 
 void writeData(String data, byte block) {
@@ -118,26 +111,18 @@ void writeData(String data, byte block) {
 void loop() {
   
   // Look for new cards
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
+  if ( ! mfrc522.PICC_IsNewCardPresent() || ! mfrc522.PICC_ReadCardSerial()) {
     return;
   }
 
-  // Select one of the cards
-  if ( ! mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
 
-  Serial.print(F("Card UID:"));    //Dump UID
-  for (byte i = 0; i < mfrc522.uid.size; i++) {
-    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
-    Serial.print(mfrc522.uid.uidByte[i], HEX);
-  }
-  Serial.print(F(" PICC type: "));   // Dump PICC type
-  MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
-  Serial.println(mfrc522.PICC_GetTypeName(piccType));
+writeData("123456789adfghjk", 4);
 
+delay(4000);
 
-readData(4);
+String res = readData(4);
+
+Serial.println(res);
 
 }
 
